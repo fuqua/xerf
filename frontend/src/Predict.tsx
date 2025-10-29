@@ -16,6 +16,19 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { AlertCircle, TrendingUp } from "lucide-react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { ANALYTICS_SNAPSHOT } from "./analyticsSnapshot";
 
 export type PredictProps = {
   onApiRequest: () => void;
@@ -88,6 +101,31 @@ const convertSignificanceToModelScale = (value: number) => {
     SIGNIFICANCE_MODEL_MIN
   );
 };
+
+const formatNumber = (value: number, digits = 3) =>
+  Number.isFinite(value) ? Number(value.toFixed(digits)) : value;
+
+const analyticsSnapshot = ANALYTICS_SNAPSHOT;
+
+const FEATURE_IMPORTANCE_SERIES = analyticsSnapshot.featureImportance
+  .map((item) => ({
+    feature: item.feature,
+    importance: formatNumber(item.importance, 4),
+  }))
+  .sort((a, b) => b.importance - a.importance);
+
+const CALIBRATION_SERIES = analyticsSnapshot.calibrationCurve.map((point) => ({
+  predicted: formatNumber(point.predicted_probability, 4),
+  observed: formatNumber(point.observed_frequency, 4),
+  perfect: formatNumber(point.predicted_probability, 4),
+}));
+
+const THRESHOLD_SERIES = analyticsSnapshot.thresholdMetrics.map((metric) => ({
+  threshold: formatNumber(metric.threshold, 2),
+  precision: formatNumber(metric.precision * 100, 2),
+  recall: formatNumber(metric.recall * 100, 2),
+  f1: formatNumber(metric.f1 * 100, 2),
+}));
 
 function Predict({ onApiRequest, onApiSuccess }: PredictProps) {
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -520,6 +558,240 @@ function Predict({ onApiRequest, onApiSuccess }: PredictProps) {
             </CardContent>
           </Card>
         </div>
+
+        <div className="mt-16 space-y-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-100">
+                Model Insight Snapshots
+              </h2>
+              <p className="text-sm text-slate-400">
+                Analytics from the latest training run to explain how the
+                classifier behaves.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-6">
+            <Card className="border border-slate-800 bg-slate-900/80 text-slate-100 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-slate-100">
+                  Threshold Sensitivity
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="aspect-[16/9] min-h-[20rem]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={THRESHOLD_SERIES}>
+                      <CartesianGrid stroke="rgba(148, 163, 184, 0.2)" />
+                      <XAxis
+                        dataKey="threshold"
+                        stroke="#cbd5f5"
+                        tick={{ fill: "#94a3b8" }}
+                        label={{
+                          value: "Threshold",
+                          position: "insideBottomRight",
+                          offset: -6,
+                          fill: "#94a3b8",
+                        }}
+                      />
+                      <YAxis
+                        stroke="#cbd5f5"
+                        tick={{ fill: "#94a3b8" }}
+                        domain={[90, 100]}
+                        tickFormatter={(value: number) =>
+                          `${value.toFixed(1)}%`
+                        }
+                        label={{
+                          value: "Score",
+                          angle: -90,
+                          position: "insideLeft",
+                          fill: "#94a3b8",
+                        }}
+                      />
+                      <Tooltip
+                        formatter={(value: number, name: string) => [
+                          `${value.toFixed(2)}%`,
+                          name.toUpperCase(),
+                        ]}
+                        labelFormatter={(label: number) =>
+                          `Threshold: ${label.toFixed(2)}`
+                        }
+                        contentStyle={{
+                          backgroundColor: "#0f172a",
+                          borderColor: "#1e293b",
+                          color: "#e2e8f0",
+                          fontSize: "0.875rem",
+                        }}
+                      />
+                      <Legend
+                        wrapperStyle={{ fontSize: "0.75rem", color: "#94a3b8" }}
+                        iconType="plainline"
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="precision"
+                        stroke="#38bdf8"
+                        strokeWidth={2}
+                        dot
+                        name="Precision"
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="recall"
+                        stroke="#f97316"
+                        strokeWidth={2}
+                        dot
+                        name="Recall"
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="f1"
+                        stroke="#c084fc"
+                        strokeWidth={2}
+                        dot
+                        name="F1"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border border-slate-800 bg-slate-900/80 text-slate-100 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-slate-100">
+                  Seismic Parameter Importance
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="aspect-[16/9] min-h-[20rem]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={FEATURE_IMPORTANCE_SERIES}>
+                      <CartesianGrid stroke="rgba(148, 163, 184, 0.2)" />
+                      <XAxis
+                        dataKey="feature"
+                        stroke="#cbd5f5"
+                        tick={{ fill: "#94a3b8" }}
+                      />
+                      <YAxis stroke="#cbd5f5" tick={{ fill: "#94a3b8" }} />
+                      <Tooltip
+                        formatter={(value: number) => value.toFixed(4)}
+                        contentStyle={{
+                          backgroundColor: "#0f172a",
+                          borderColor: "#1e293b",
+                          color: "#e2e8f0",
+                          fontSize: "0.875rem",
+                        }}
+                      />
+                      <Bar
+                        dataKey="importance"
+                        fill="#60a5fa"
+                        radius={[8, 8, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border border-slate-800 bg-slate-900/80 text-slate-100 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-slate-100">
+                  Alert Probability Reliability Curve
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="aspect-[16/9] min-h-[20rem]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={CALIBRATION_SERIES}>
+                      <CartesianGrid stroke="rgba(148, 163, 184, 0.2)" />
+                      <XAxis
+                        dataKey="predicted"
+                        stroke="#cbd5f5"
+                        tick={{ fill: "#94a3b8" }}
+                        label={{
+                          value: "Predicted Probability",
+                          position: "insideBottomRight",
+                          offset: -6,
+                          fill: "#94a3b8",
+                        }}
+                      />
+                      <YAxis
+                        stroke="#cbd5f5"
+                        tick={{ fill: "#94a3b8" }}
+                        label={{
+                          value: "Observed Frequency",
+                          angle: -90,
+                          position: "insideLeft",
+                          fill: "#94a3b8",
+                        }}
+                      />
+                      <Tooltip
+                        formatter={(value: number, name: string) => [
+                          value.toFixed(3),
+                          name === "observed"
+                            ? "Observed"
+                            : name === "predicted"
+                            ? "Predicted"
+                            : "Perfect",
+                        ]}
+                        contentStyle={{
+                          backgroundColor: "#0f172a",
+                          borderColor: "#1e293b",
+                          color: "#e2e8f0",
+                          fontSize: "0.875rem",
+                        }}
+                      />
+                      <Legend
+                        wrapperStyle={{ fontSize: "0.75rem", color: "#94a3b8" }}
+                        iconType="circle"
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="observed"
+                        stroke="#a855f7"
+                        strokeWidth={2}
+                        dot
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="perfect"
+                        stroke="#64748b"
+                        strokeWidth={2}
+                        strokeDasharray="6 6"
+                        dot={false}
+                        name="Perfect"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        <p className="mt-12 text-center text-xs text-slate-500">
+          Model uses data from the{" "}
+          <a
+            href="https://www.kaggle.com/datasets/ahmeduzaki/earthquake-alert-prediction-dataset"
+            target="_blank"
+            rel="noreferrer"
+            className="text-blue-400 underline"
+          >
+            Earthquake Alert Prediction Dataset
+          </a>{" "}
+          by Ahmed Uzaki on Kaggle, licensed under{" "}
+          <a
+            href="https://creativecommons.org/licenses/by/4.0/"
+            target="_blank"
+            rel="noreferrer"
+            className="text-blue-400 underline"
+          >
+            CC BY 4.0
+          </a>
+          .
+        </p>
       </div>
     </div>
   );

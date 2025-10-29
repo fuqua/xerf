@@ -19,7 +19,8 @@ type ApiError = {
   detail: string;
 };
 
-const DEFAULT_BASE_URL = "http://localhost:8000";
+// const DEFAULT_BASE_URL = "http://localhost:8000";
+const DEFAULT_BASE_URL = "https://xerf.onrender.com";
 
 export const getApiBaseUrl = () => {
   const url = import.meta.env.VITE_API_BASE_URL;

@@ -291,7 +291,7 @@ function Predict({ onApiRequest, onApiSuccess }: PredictProps) {
             <TrendingUp className="h-6 w-6 text-blue-400" />
           </div>
           <h1 className="text-4xl font-bold text-slate-100 mb-3">
-            Earthquake Risk Forecaster
+            XYZ Earthquake Risk Forecaster
           </h1>
           <p className="text-lg text-slate-400 max-w-2xl mx-auto">
             Enter seismic parameters to predict alert levels using machine

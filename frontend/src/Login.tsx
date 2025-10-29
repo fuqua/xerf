@@ -24,7 +24,7 @@ function Login({ onLogin, isLoading, errorMessage }: LoginProps) {
             <TrendingUp className="h-6 w-6 text-blue-400" />
           </div>
           <CardTitle className="text-2xl font-semibold text-slate-100">
-            Earthquake Risk Forecaster
+            XYZ Earthquake Risk Forecaster
           </CardTitle>
           <CardDescription className="text-slate-400">
             Wake the API to start forecasting
